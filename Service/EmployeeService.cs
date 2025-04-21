@@ -24,7 +24,7 @@ public class EmployeeService : IEmployeeService
             Email = employeeCreateViewModel.Email,
             NationalId = employeeCreateViewModel.NationalId,
             PhoneNumber = employeeCreateViewModel.PhoneNumber,
-            SignaturePath = employeeCreateViewModel.SignaturePath,
+            SignaturePath = employeeCreateViewModel.SignaturePath ?? null,
         };
 
         await _unitOfWork.GetRepository<Employee>().AddAsync(employee);
@@ -39,10 +39,10 @@ public class EmployeeService : IEmployeeService
             Email = employee.Email,
             NationalId = employee.NationalId,
             PhoneNumber = employee.PhoneNumber,
-            SignaturePath = employee.SignaturePath,
+            SignaturePath = employee.SignaturePath ?? null,
             FullName = employee.FirstName + " " + employee.LastName,
             CreatedAt = employee.CreatedAt,
-            UpdatedAt = employee.UpdatedAt
+            UpdatedAt = employee.UpdatedAt >= employee.CreatedAt ? employee.UpdatedAt : null
         };
     }
 
@@ -73,21 +73,21 @@ public class EmployeeService : IEmployeeService
             NationalId = e.NationalId,
             PhoneNumber = e.PhoneNumber,
             SignaturePath = e.SignaturePath,
-            UpdatedAt = e.UpdatedAt
+            UpdatedAt = e.UpdatedAt >= e.CreatedAt ? e.UpdatedAt : null
         });
 
         return employeeViewModels;
     }
 
-    public async Task<EmployeeViewModel> UpdateAsync(EmployeeUpdateViewModel employeeUpdateViewModel)
+    public async Task<bool> UpdateAsync(int id, EmployeeUpdateViewModel employeeUpdateViewModel)
     {
         var employee = new Employee()
         {
-            Id = employeeUpdateViewModel.Id,
+            Id = id,
             FirstName = employeeUpdateViewModel.FirstName,
             LastName = employeeUpdateViewModel.LastName,
             Email = employeeUpdateViewModel.Email,
-            Age = employeeUpdateViewModel.Age,
+            Age = employeeUpdateViewModel.Age!.Value,
             NationalId = employeeUpdateViewModel.NationalId,
             PhoneNumber = employeeUpdateViewModel.PhoneNumber,
             SignaturePath = employeeUpdateViewModel.SignaturePath,
@@ -106,20 +106,20 @@ public class EmployeeService : IEmployeeService
 
         await _unitOfWork.SaveChangesAsync();
 
-        return new EmployeeViewModel()
-        {
-            Id = employee.Id,
-            FirstName = employee.FirstName,
-            LastName = employee.LastName,
-            Email = employee.Email,
-            Age = employee.Age,
-            NationalId = employee.NationalId,
-            PhoneNumber = employee.PhoneNumber,
-            FullName = employee.FirstName + " " + employee.LastName,
-            UpdatedAt = employee.UpdatedAt,
-            SignaturePath = employee.SignaturePath,
-            CreatedAt = employee.CreatedAt
-        };
+        return true;
 
+    }
+
+    public async Task<bool> UpdateSignatureAsync(int id, string signature)
+    {
+        var employee = new Employee()
+        {
+            Id = id,
+            SignaturePath = signature,
+        };
+        _unitOfWork.GetRepository<Employee>().SaveInclude(employee, e => e.SignaturePath);
+        await _unitOfWork.SaveChangesAsync();
+
+        return true;
     }
 }

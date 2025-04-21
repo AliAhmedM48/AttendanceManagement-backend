@@ -1,6 +1,12 @@
 
+using Core.Interfaces;
+using Core.Interfaces.Services;
+using Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Repository;
 using Repository.Data;
+using Repository.Repositories;
+using Service;
 
 namespace WebAPI
 {
@@ -19,6 +25,11 @@ namespace WebAPI
 
             builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddScoped<IRepository<Employee>, Repository<Employee>>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 
             var app = builder.Build();

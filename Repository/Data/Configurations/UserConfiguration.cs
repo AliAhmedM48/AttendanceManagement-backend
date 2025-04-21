@@ -1,4 +1,5 @@
-﻿using Core.Models;
+﻿using Core.Enums;
+using Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,6 +22,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                .IsRequired();
 
         builder.Property(u => u.Role)
-               .HasConversion<int>();
+        .HasConversion<int>();
+
+        builder.HasDiscriminator<UserRole>(p => p.Role)
+            .HasValue<User>(UserRole.Admin)
+            .HasValue<Employee>(UserRole.Employee);
+
     }
 }
