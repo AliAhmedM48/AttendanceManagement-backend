@@ -1,5 +1,6 @@
 ﻿using Core.Interfaces.Services;
 using Core.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebAPI.Controllers;
@@ -15,6 +16,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<EmployeeViewModel>>> GetAllEmployees()
     {
         try

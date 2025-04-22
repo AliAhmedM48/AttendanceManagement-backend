@@ -1,10 +1,5 @@
 ﻿namespace Core.ViewModels;
-/*
- public class Attendance : BaseModel
-{
-    
-}
- */
+
 public class AttendanceViewModel
 {
     public int Id { get; set; }

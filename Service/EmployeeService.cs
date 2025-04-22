@@ -1,5 +1,6 @@
 ﻿using Core.Interfaces;
 using Core.Interfaces.Services;
+using Core.Interfaces.Services.Auth;
 using Core.Models;
 using Core.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -9,25 +10,36 @@ namespace Service;
 public class EmployeeService : IEmployeeService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuthenticationService _authenticationService;
 
-    public EmployeeService(IUnitOfWork unitOfWork)
+    public EmployeeService(IUnitOfWork unitOfWork, IAuthenticationService authenticationService)
     {
         this._unitOfWork = unitOfWork;
+        this._authenticationService = authenticationService;
     }
+
     public async Task<EmployeeViewModel> CreateAsync(EmployeeCreateViewModel employeeCreateViewModel)
     {
+        var employeeRepo = _unitOfWork.GetRepository<Employee>();
+        if (await employeeRepo.AnyAsync(u => u.Email == employeeCreateViewModel.Email))
+            throw new Exception("Email already exists");
+
+        var (passwordHash, passwordSalt) = _authenticationService.CreatePasswordHash(employeeCreateViewModel.Password);
+
         var employee = new Employee()
         {
             FirstName = employeeCreateViewModel.FirstName,
             LastName = employeeCreateViewModel.LastName,
             Age = employeeCreateViewModel.Age,
             Email = employeeCreateViewModel.Email,
+            PasswordHash = passwordHash,
+            PasswordSalt = passwordSalt,
             NationalId = employeeCreateViewModel.NationalId,
             PhoneNumber = employeeCreateViewModel.PhoneNumber,
             SignaturePath = employeeCreateViewModel.SignaturePath ?? null,
         };
 
-        await _unitOfWork.GetRepository<Employee>().AddAsync(employee);
+        await employeeRepo.AddAsync(employee);
         await _unitOfWork.SaveChangesAsync();
 
         return new EmployeeViewModel
