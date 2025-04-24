@@ -18,6 +18,21 @@ public class AttendanceService : IAttendanceService
     {
         var now = DateTime.Now;
 
+        var today = now.Date;
+        var repository = _unitOfWork.GetRepository<Attendance>();
+
+        var hasCheckedInToday = await repository
+            .AnyAsync(a => a.EmployeeId == employeeId && a.CheckInTime.Date == today);
+
+        if (hasCheckedInToday)
+            throw new InvalidOperationException("You have already checked in today.");
+
+        var allowedStartTime = today.AddHours(7.5);
+        var allowedEndTime = today.AddHours(9);
+
+        if (now < allowedStartTime || now > allowedEndTime)
+            throw new InvalidOperationException("Check-in is allowed only between 7:30 AM and 9:00 AM.");
+
         var attendance = new Attendance()
         {
             EmployeeId = employeeId,
@@ -25,18 +40,18 @@ public class AttendanceService : IAttendanceService
             CreatedAt = now,
         };
 
-        await _unitOfWork.GetRepository<Attendance>().AddAsync(attendance);
+        await repository.AddAsync(attendance);
         await _unitOfWork.SaveChangesAsync();
 
         return new AttendanceViewModel
         {
-
             Id = attendance.Id,
             CheckInTime = attendance.CheckInTime,
             EmployeeId = attendance.EmployeeId,
-            CheckOutTime = attendance.CheckOutTime >= attendance.CheckInTime ? attendance.CheckOutTime : null,
+            CheckOutTime = null
         };
     }
+
 
     public async Task<bool> DeleteOneAsync(int id)
     {
@@ -64,7 +79,7 @@ public class AttendanceService : IAttendanceService
         return attendanceViewModels;
     }
 
-    public async Task<bool> UpdateAsync(int employeeId, int attendanceId)
+    public async Task<AttendanceViewModel> UpdateAsync(int employeeId, int attendanceId)
     {
         var now = DateTime.Now;
         var repository = _unitOfWork.GetRepository<Attendance>();
@@ -84,7 +99,14 @@ public class AttendanceService : IAttendanceService
         repository.SaveInclude(attendance, e => e.CheckOutTime, e => e.TotalWorkedHours, e => e.UpdatedAt);
         await _unitOfWork.SaveChangesAsync();
 
-        return true;
+        return new AttendanceViewModel()
+        {
+            Id = attendance.Id,
+            EmployeeId = attendance.EmployeeId,
+            CheckInTime = attendance.CheckInTime,
+            CheckOutTime = attendance.CheckOutTime,
+            TotalWorkedHours = attendance.TotalWorkedHours
+        };
     }
 
 }

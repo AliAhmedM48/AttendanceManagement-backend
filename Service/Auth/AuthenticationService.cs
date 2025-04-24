@@ -54,6 +54,10 @@ public class AuthenticationService : IAuthenticationService
         return hashBytes.SequenceEqual(computed);
     }
 
+    public async Task<bool> IsUserExists(int userId)
+    {
+        return await _unitOfWork.GetRepository<User>().AnyAsync(e => e.Id == userId);
+    }
 
 
 

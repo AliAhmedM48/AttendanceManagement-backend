@@ -20,15 +20,38 @@ public class EmployeeService : IEmployeeService
         this._authenticationService = authenticationService;
     }
 
-    public async Task<int> CreateAsync(EmployeeCreateViewModel employeeCreateViewModel)
+    public async Task<int> CreateAsync(EmployeeCreateViewModel employeeCreateViewModel, IFormFile signatureFile)
     {
         var employeeRepo = _unitOfWork.GetRepository<Employee>();
+
         if (await employeeRepo.AnyAsync(u => u.Email == employeeCreateViewModel.Email))
             throw new Exception("Email already exists");
 
         var (passwordHash, passwordSalt) = _authenticationService.CreatePasswordHash(employeeCreateViewModel.Password);
         var nationalIdInfo = ServiceHelpers.ExtractNationalIdInfoFromNationalId(employeeCreateViewModel.NationalId);
-        var employee = new Employee()
+
+        string? savedSignatureFileName = null;
+
+        if (signatureFile != null && signatureFile.Length > 0)
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fileExtension = Path.GetExtension(signatureFile.FileName);
+            var fileName = $"signature_{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await signatureFile.CopyToAsync(stream);
+            }
+
+            savedSignatureFileName = fileName;
+        }
+
+        var employee = new Employee
         {
             FirstName = employeeCreateViewModel.FirstName,
             LastName = employeeCreateViewModel.LastName,
@@ -40,7 +63,7 @@ public class EmployeeService : IEmployeeService
             PasswordSalt = passwordSalt,
             NationalId = employeeCreateViewModel.NationalId,
             PhoneNumber = employeeCreateViewModel.PhoneNumber,
-            SignaturePath = employeeCreateViewModel.SignaturePath ?? null,
+            SignaturePath = savedSignatureFileName,
         };
 
         await employeeRepo.AddAsync(employee);
@@ -48,6 +71,7 @@ public class EmployeeService : IEmployeeService
 
         return employee.Id;
     }
+
 
     public async Task<bool> DeleteOneAsync(int id)
     {
@@ -112,24 +136,51 @@ public class EmployeeService : IEmployeeService
     }
 
 
-    public async Task<bool> UpdateAsync(int id, EmployeeUpdateViewModel employeeUpdateViewModel)
+    public async Task<bool> UpdateAsync(int id, EmployeeUpdateViewModel employeeUpdateViewModel, IFormFile signatureFile)
     {
         var nationalIdInfo = ServiceHelpers.ExtractNationalIdInfoFromNationalId(employeeUpdateViewModel.NationalId);
 
-        var employee = new Employee()
+        var employee = await _unitOfWork.GetRepository<Employee>().GetByIdAsync(id);
+        if (employee == null)
+            throw new KeyNotFoundException($"Employee with ID {id} not found.");
+
+        if (signatureFile != null && signatureFile.Length > 0)
         {
-            Id = id,
-            FirstName = employeeUpdateViewModel.FirstName,
-            LastName = employeeUpdateViewModel.LastName,
-            Email = employeeUpdateViewModel.Email,
-            NationalId = employeeUpdateViewModel.NationalId,
-            BirthDate = nationalIdInfo.BirthDate,
-            Gender = nationalIdInfo.Gender,
-            Governorate = nationalIdInfo.Governorate,
-            PhoneNumber = employeeUpdateViewModel.PhoneNumber,
-            SignaturePath = employeeUpdateViewModel.SignaturePath,
-            UpdatedAt = DateTime.Now,
-        };
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            if (!string.IsNullOrWhiteSpace(employee.SignaturePath))
+            {
+                var oldFilePath = Path.Combine(uploadsFolder, employee.SignaturePath);
+                if (File.Exists(oldFilePath))
+                {
+                    File.Delete(oldFilePath);
+                }
+            }
+
+            var fileExtension = Path.GetExtension(signatureFile.FileName);
+            var fileName = $"signature_{id}_{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await signatureFile.CopyToAsync(stream);
+            }
+
+            employee.SignaturePath = fileName;
+        }
+
+        employee.FirstName = employeeUpdateViewModel.FirstName;
+        employee.LastName = employeeUpdateViewModel.LastName;
+        employee.Email = employeeUpdateViewModel.Email;
+        employee.NationalId = employeeUpdateViewModel.NationalId;
+        employee.BirthDate = nationalIdInfo.BirthDate;
+        employee.Gender = nationalIdInfo.Gender;
+        employee.Governorate = nationalIdInfo.Governorate;
+        employee.PhoneNumber = employeeUpdateViewModel.PhoneNumber;
+        employee.UpdatedAt = DateTime.Now;
 
         _unitOfWork.GetRepository<Employee>().SaveInclude(employee,
            e => e.FirstName,
@@ -146,15 +197,15 @@ public class EmployeeService : IEmployeeService
         await _unitOfWork.SaveChangesAsync();
 
         return true;
-
     }
+
 
 
     public async Task<IEnumerable<AttendanceViewModel>> GetAttendanceByEmployeeId(int employeeId)
     {
         var attendanceRecords = await _unitOfWork.GetRepository<Attendance>()
             .GetAll(a => a.EmployeeId == employeeId)
-            .OrderBy(a => a.CheckInTime)
+            .OrderByDescending(a => a.CheckInTime)
             .ToListAsync();
 
         if (attendanceRecords == null || !attendanceRecords.Any())
@@ -162,6 +213,7 @@ public class EmployeeService : IEmployeeService
 
         var attendanceViewModels = attendanceRecords.Select(a => new AttendanceViewModel
         {
+            Id = a.Id,
             EmployeeId = a.EmployeeId,
             CheckInTime = a.CheckInTime,
             CheckOutTime = a.CheckOutTime,
@@ -199,8 +251,6 @@ public class EmployeeService : IEmployeeService
     }
 
 
-
-
     public async Task<string> UpdateSignatureAsync(int id, IFormFile signature)
     {
         var employee = await _unitOfWork.GetRepository<Employee>().GetByIdAsync(id);
@@ -208,8 +258,18 @@ public class EmployeeService : IEmployeeService
             return null;
 
         var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "signatures");
+
         if (!Directory.Exists(uploadsFolder))
             Directory.CreateDirectory(uploadsFolder);
+
+        if (!string.IsNullOrWhiteSpace(employee.SignaturePath))
+        {
+            var oldFilePath = Path.Combine(uploadsFolder, employee.SignaturePath);
+            if (File.Exists(oldFilePath))
+            {
+                File.Delete(oldFilePath);
+            }
+        }
 
         var fileExtension = Path.GetExtension(signature.FileName);
         var fileName = $"signature_{id}_{Guid.NewGuid()}{fileExtension}";
@@ -221,11 +281,35 @@ public class EmployeeService : IEmployeeService
         }
 
         employee.SignaturePath = fileName;
+        employee.UpdatedAt = DateTime.Now;
 
-        _unitOfWork.GetRepository<Employee>().SaveInclude(employee, e => e.SignaturePath);
+        _unitOfWork.GetRepository<Employee>().SaveInclude(employee, e => e.SignaturePath, e => e.UpdatedAt);
         await _unitOfWork.SaveChangesAsync();
 
         return fileName;
+    }
+
+
+    public async Task<AttendanceViewModel?> GetTodayAttendanceByEmployeeId(int employeeId)
+    {
+        var today = DateTime.Today;
+
+        var attendance = await _unitOfWork.GetRepository<Attendance>()
+            .GetAll(a => a.EmployeeId == employeeId && a.CheckInTime.Date == today)
+            .OrderByDescending(a => a.CheckInTime)
+            .FirstOrDefaultAsync();
+
+        if (attendance == null)
+            return null;
+
+        return new AttendanceViewModel
+        {
+            Id = attendance.Id,
+            EmployeeId = attendance.EmployeeId,
+            CheckInTime = attendance.CheckInTime,
+            CheckOutTime = attendance.CheckOutTime,
+            TotalWorkedHours = attendance.CheckOutTime.HasValue ? (attendance.CheckOutTime.Value - attendance.CheckInTime).TotalHours : 0
+        };
     }
 
 }

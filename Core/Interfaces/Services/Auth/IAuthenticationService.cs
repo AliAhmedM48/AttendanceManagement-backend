@@ -7,6 +7,7 @@ public interface IAuthenticationService
     public (string, string) CreatePasswordHash(string password);
 
 
+    public Task<bool> IsUserExists(int userId);
 
 
 }

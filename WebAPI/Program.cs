@@ -101,15 +101,20 @@ namespace WebAPI
 
             var app = builder.Build();
 
-            await DataSeeder.SeedAdminAsync(app.Services);
             app.UseCors(policyName);
 
-            // Configure the HTTP request pipeline.
-            //if (app.Environment.IsDevelopment())
-            //{
-            //    app.UseSwagger();
-            //    app.UseSwaggerUI();
-            //}
+            //Configure the HTTP request pipeline.
+            if (app.Environment.IsDevelopment())
+            {
+                //app.UseSwagger();
+                //app.UseSwaggerUI();
+                #region Update Database Based on Pending Migration & Data Seeding
+                var appDbContext = app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>();
+                await appDbContext.Database.MigrateAsync();
+                await DataSeeder.SeedData(app.Services);
+                #endregion
+
+            }
 
             app.UseHttpsRedirection();
 

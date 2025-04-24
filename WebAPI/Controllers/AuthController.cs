@@ -2,6 +2,7 @@
 using Core.ViewModels.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace WebAPI.Controllers;
 [Route("api/[controller]")]
@@ -13,6 +14,18 @@ public class AuthController : ControllerBase
     public AuthController(IAuthenticationService authenticationService)
     {
         this._authenticationService = authenticationService;
+    }
+
+    [HttpGet("validate-token")]
+    public async Task<IActionResult> ValidateToken()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userExists = await _authenticationService.IsUserExists(int.Parse(userId!));
+
+        if (!userExists)
+            return Unauthorized("Invalid token");
+
+        return Ok();
     }
 
     [HttpPost("login")]

@@ -32,11 +32,12 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<EmployeeViewModel>> CreateNewEmployee([FromBody] EmployeeCreateViewModel employeeCreateViewModel)
+    public async Task<ActionResult<EmployeeViewModel>> CreateNewEmployee([FromForm] EmployeeCreateViewModel employeeCreateViewModel, [FromForm] IFormFile signature)
+
     {
         try
         {
-            var employeeId = await _employeeService.CreateAsync(employeeCreateViewModel);
+            var employeeId = await _employeeService.CreateAsync(employeeCreateViewModel, signature);
             return Created(string.Empty, new { employeeId });
 
         }
@@ -47,13 +48,12 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<bool>> UpdateEmployee([FromRoute] int id, [FromBody] EmployeeUpdateViewModel employeeUpdateViewModel)
+    public async Task<ActionResult<bool>> UpdateEmployee([FromRoute] int id, [FromForm] EmployeeUpdateViewModel employeeUpdateViewModel, [FromForm] IFormFile signature)
     {
         try
         {
-            var result = await _employeeService.UpdateAsync(id, employeeUpdateViewModel);
+            var result = await _employeeService.UpdateAsync(id, employeeUpdateViewModel, signature);
             return Ok(result);
-
         }
         catch (Exception ex)
         {
@@ -61,10 +61,10 @@ public class EmployeesController : ControllerBase
         }
     }
 
+
     [HttpPatch("{id}/signature")]
     public async Task<IActionResult> UpdateEmployeeSignature([FromRoute] int id, [FromForm] IFormFile signature)
     {
-        Console.WriteLine("Log: xxxxxxxxxxxxxxxxxx=>>");
         try
         {
             if (signature == null || signature.Length == 0)
@@ -82,7 +82,7 @@ public class EmployeesController : ControllerBase
         }
     }
 
-    [HttpGet("signatures/{fileName}")]
+    [HttpGet("me/signatures/{fileName}")]
     public async Task<IActionResult> GetSignature([FromRoute] string fileName)
     {
         try
@@ -109,7 +109,7 @@ public class EmployeesController : ControllerBase
 
             var attendanceRecords = await _employeeService.GetAttendanceByEmployeeId(employeeId);
 
-            if (attendanceRecords == null || !attendanceRecords.Any())
+            if (attendanceRecords == null)
                 return NotFound("No attendance records found for this employee.");
 
             return Ok(attendanceRecords);
@@ -154,6 +154,18 @@ public class EmployeesController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+    }
+    [HttpGet("me/attendance/today")]
+    public async Task<IActionResult> GetTodayAttendance()
+    {
+
+        var employeeId = GetEmployeeIdFromToken();
+        var result = await _employeeService.GetTodayAttendanceByEmployeeId(employeeId);
+
+        if (result == null)
+            return NotFound("No attendance record for today.");
+
+        return Ok(result);
     }
 
     private int GetEmployeeIdFromToken()

@@ -47,13 +47,13 @@ public class AttendancesController : ControllerBase
     }
 
     [HttpPatch("check-out/{id}")]
-    public async Task<ActionResult<bool>> CheckOut([FromRoute] int id)
+    public async Task<ActionResult> CheckOut([FromRoute] int id)
     {
         try
         {
             var employeeId = GetEmployeeIdFromToken();
-            var result = await _attendanceService.UpdateAsync(employeeId, id);
-            return Ok(result);
+            var attendanceViewModel = await _attendanceService.UpdateAsync(employeeId, id);
+            return Ok(attendanceViewModel);
         }
         catch (Exception ex)
         {

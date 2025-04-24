@@ -7,7 +7,7 @@ public interface IAttendanceService
 
     public Task<AttendanceViewModel> CreateAsync(int employeeId);
 
-    public Task<bool> UpdateAsync(int employeeId, int attendanceId);
+    public Task<AttendanceViewModel> UpdateAsync(int employeeId, int attendanceId);
 
     public Task<bool> DeleteOneAsync(int id);
 
