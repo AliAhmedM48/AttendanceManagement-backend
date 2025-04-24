@@ -14,13 +14,15 @@ public class AttendanceService : IAttendanceService
     {
         this._unitOfWork = unitOfWork;
     }
-    public async Task<AttendanceViewModel> CreateAsync(AttendanceCreateViewModel attendanceCreateViewModel)
+    public async Task<AttendanceViewModel> CreateAsync(int employeeId)
     {
+        var now = DateTime.Now;
+
         var attendance = new Attendance()
         {
-            EmployeeId = attendanceCreateViewModel.EmployeeId,
-            CheckInTime = DateTime.Now,
-            CreatedAt = DateTime.Now,
+            EmployeeId = employeeId,
+            CheckInTime = now,
+            CreatedAt = now,
         };
 
         await _unitOfWork.GetRepository<Attendance>().AddAsync(attendance);
@@ -62,22 +64,27 @@ public class AttendanceService : IAttendanceService
         return attendanceViewModels;
     }
 
-    public async Task<bool> UpdateAsync(int id)
+    public async Task<bool> UpdateAsync(int employeeId, int attendanceId)
     {
-        var attendance = new Attendance()
-        {
-            Id = id,
-            CheckOutTime = DateTime.Now,
-            UpdatedAt = DateTime.Now,
-        };
+        var now = DateTime.Now;
+        var repository = _unitOfWork.GetRepository<Attendance>();
 
-        _unitOfWork.GetRepository<Attendance>().SaveInclude(attendance,
-            a => a.CheckOutTime,
-           a => a.UpdatedAt);
+        var attendance = await repository.GetByIdAsync(attendanceId);
 
+        if (attendance == null)
+            throw new KeyNotFoundException($"Attendance with ID {attendanceId} not found.");
+
+        if (attendance.EmployeeId != employeeId)
+            throw new UnauthorizedAccessException("You are not authorized to update this attendance record.");
+
+        attendance.CheckOutTime = now;
+        attendance.TotalWorkedHours = attendance.CheckOutTime.HasValue ? (attendance.CheckOutTime.Value - attendance.CheckInTime).TotalHours : 0;
+        attendance.UpdatedAt = now;
+
+        repository.SaveInclude(attendance, e => e.CheckOutTime, e => e.TotalWorkedHours, e => e.UpdatedAt);
         await _unitOfWork.SaveChangesAsync();
 
         return true;
-
     }
+
 }

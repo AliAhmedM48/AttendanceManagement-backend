@@ -1,15 +1,19 @@
 ﻿using Core.ViewModels;
+using Microsoft.AspNetCore.Http;
 
 namespace Core.Interfaces.Services;
 public interface IEmployeeService
 {
     public Task<IEnumerable<EmployeeViewModel>> GetAll();
+    public Task<EmployeeViewModel> GetEmployeeById(int id);
 
-    public Task<EmployeeViewModel> CreateAsync(EmployeeCreateViewModel employeeCreateViewModel);
+    public Task<int> CreateAsync(EmployeeCreateViewModel employeeCreateViewModel);
 
     public Task<bool> UpdateAsync(int id, EmployeeUpdateViewModel employeeUpdateViewModel);
-    public Task<bool> UpdateSignatureAsync(int id, string signature);
+    public Task<string> UpdateSignatureAsync(int id, IFormFile signature);
+    public Task<EmployeeViewModel> GetProfileDataByEmployeeId(int employeeId);
 
+    public Task<IEnumerable<AttendanceViewModel>> GetAttendanceByEmployeeId(int employeeId);
 
     public Task<bool> DeleteOneAsync(int id);
 }

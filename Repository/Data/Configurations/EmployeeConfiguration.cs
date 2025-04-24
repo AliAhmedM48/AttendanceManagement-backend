@@ -8,17 +8,10 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {
     public void Configure(EntityTypeBuilder<Employee> builder)
     {
-        builder.Property(e => e.FirstName)
-               .IsRequired()
-               .HasMaxLength(50);
-
-        builder.Property(e => e.LastName)
-               .IsRequired()
-               .HasMaxLength(50);
 
         builder.Property(e => e.PhoneNumber)
-               .IsRequired()
-               .HasMaxLength(11);
+                     .IsRequired()
+                     .HasMaxLength(11);
 
         builder.Property(e => e.NationalId)
                .IsRequired()
@@ -31,5 +24,14 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
                .WithOne(a => a.Employee)
                .HasForeignKey(a => a.EmployeeId)
                .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(e => e.PhoneNumber)
+             .IsUnique();
+
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Employee_PhoneNumber_Format", "LEN([PhoneNumber]) = 11 AND [PhoneNumber] NOT LIKE '%[^0-9]%'");
+            t.HasCheckConstraint("CK_Employee_NationalId_Format", "LEN([NationalId]) = 14 AND [NationalId] NOT LIKE '%[^0-9]%'");
+        });
     }
 }

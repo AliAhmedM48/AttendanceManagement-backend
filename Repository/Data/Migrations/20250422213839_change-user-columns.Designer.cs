@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Repository.Data;
 
 #nullable disable
 
-namespace Repository.data.Migrations
+namespace Repository.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250422213839_change-user-columns")]
+    partial class changeusercolumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,9 +44,6 @@ namespace Repository.data.Migrations
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
-
-                    b.Property<double?>("TotalWorkedHours")
-                        .HasColumnType("float");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -103,7 +103,7 @@ namespace Repository.data.Migrations
 
                     b.ToTable("Users");
 
-                    b.HasDiscriminator<int>("Role").HasValue(2);
+                    b.HasDiscriminator<int>("Role").HasValue(0);
 
                     b.UseTphMappingStrategy();
                 });
@@ -112,15 +112,8 @@ namespace Repository.data.Migrations
                 {
                     b.HasBaseType("Core.Models.User");
 
-                    b.Property<DateTime>("BirthDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte>("Gender")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("Governorate")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Age")
+                        .HasColumnType("int");
 
                     b.Property<string>("NationalId")
                         .IsRequired()
@@ -135,17 +128,6 @@ namespace Repository.data.Migrations
                     b.Property<string>("SignaturePath")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.HasIndex("PhoneNumber")
-                        .IsUnique()
-                        .HasFilter("[PhoneNumber] IS NOT NULL");
-
-                    b.ToTable(t =>
-                        {
-                            t.HasCheckConstraint("CK_Employee_NationalId_Format", "LEN([NationalId]) = 14 AND [NationalId] NOT LIKE '%[^0-9]%'");
-
-                            t.HasCheckConstraint("CK_Employee_PhoneNumber_Format", "LEN([PhoneNumber]) = 11 AND [PhoneNumber] NOT LIKE '%[^0-9]%'");
-                        });
 
                     b.HasDiscriminator().HasValue(1);
                 });

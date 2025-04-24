@@ -19,6 +19,8 @@ public static class DataSeeder
         {
             var email = configuration["AdminUser:Email"]!;
             var password = configuration["AdminUser:Password"]!;
+            var firstName = configuration["AdminUser:FirstName"]!;
+            var lastName = configuration["AdminUser:LastName"]!;
 
             using var hmac = new HMACSHA512();
             byte[] salt = hmac.Key;
@@ -29,10 +31,13 @@ public static class DataSeeder
 
             var adminUser = new User
             {
+                FirstName = firstName,
+                LastName = lastName,
                 Email = email,
                 PasswordHash = passwordHashBase64,
                 PasswordSalt = passwordSaltBase64,
                 Role = UserRole.Admin,
+                CreatedAt = DateTime.Now,
             };
 
             await context.Users.AddAsync(adminUser);

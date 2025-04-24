@@ -1,9 +1,10 @@
-
+﻿
 using Core.Interfaces;
 using Core.Interfaces.Services;
 using Core.Interfaces.Services.Auth;
 using Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Repository;
@@ -61,26 +62,60 @@ namespace WebAPI
                         ValidAudience = builder.Configuration["Jwt:Audience"],
                     };
                 });
+            var corsSettings = builder.Configuration.GetSection("Cors");
+            var allowedOrigins = corsSettings.GetSection("AllowedOrigins").Get<string[]>();
+            var policyName = corsSettings["PolicyName"];
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(policyName, builder =>
+                {
+                    builder.WithOrigins(allowedOrigins)
+                           .AllowAnyHeader()
+                           .AllowAnyMethod()
+                           .AllowCredentials();
+                });
+            });
 
-            builder.Services.AddAuthorization();
+            builder.Services.AddAuthorization(options =>
+            {
+                options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            });
+
+            //builder.Services.AddSwaggerGen(c =>
+            //{
+            //    c.MapType<IFormFile>(() => new OpenApiSchema { Type = "string", Format = "binary" });
+
+            //    c.SwaggerDoc("v1", new OpenApiInfo
+            //    {
+            //        Title = "WebAPI",
+            //        Version = "v1"
+            //    });
+
+            //    // Enable file upload support in Swagger
+            //    c.OperationFilter<FileUploadOperationFilter>();
+            //});
 
 
             var app = builder.Build();
 
             await DataSeeder.SeedAdminAsync(app.Services);
+            app.UseCors(policyName);
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            //if (app.Environment.IsDevelopment())
+            //{
+            //    app.UseSwagger();
+            //    app.UseSwaggerUI();
+            //}
 
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
             app.UseAuthorization();
+
 
             app.MapControllers();
 

@@ -2,7 +2,7 @@
 
 public enum UserRole : byte
 {
-    Admin = 0,
-    Employee = 1
+    None = 0,
+    Employee = 1,
+    Admin = 2,
 }
-

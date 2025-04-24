@@ -5,9 +5,10 @@ public interface IAttendanceService
 {
     public Task<IEnumerable<AttendanceViewModel>> GetAll();
 
-    public Task<AttendanceViewModel> CreateAsync(AttendanceCreateViewModel attendanceCreateViewModel);
+    public Task<AttendanceViewModel> CreateAsync(int employeeId);
 
-    public Task<bool> UpdateAsync(int id);
+    public Task<bool> UpdateAsync(int employeeId, int attendanceId);
 
     public Task<bool> DeleteOneAsync(int id);
+
 }

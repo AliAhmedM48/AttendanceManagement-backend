@@ -27,7 +27,7 @@ public class AuthenticationService : IAuthenticationService
             throw new UnauthorizedAccessException("Invalid credentials");
 
         var token = _jwtService.GenerateToken(user.Id, user.Email, user.Role.ToString());
-        return new AuthResponseViewModel { Token = token, Email = user.Email, Role = user.Role.ToString() };
+        return new AuthResponseViewModel { Id = user.Id, Token = token, Email = user.Email, FullName = $"{user.FirstName} {user.LastName}", Role = user.Role.ToString() };
     }
 
 
@@ -53,4 +53,11 @@ public class AuthenticationService : IAuthenticationService
         var computed = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         return hashBytes.SequenceEqual(computed);
     }
+
+
+
+
+
+
+
 }

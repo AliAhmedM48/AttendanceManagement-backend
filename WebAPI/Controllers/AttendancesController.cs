@@ -1,6 +1,7 @@
 ﻿using Core.Interfaces.Services;
 using Core.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace WebAPI.Controllers;
 [Route("api/[controller]")]
@@ -8,10 +9,12 @@ namespace WebAPI.Controllers;
 public class AttendancesController : ControllerBase
 {
     private readonly IAttendanceService _attendanceService;
+    private readonly IEmployeeService _employeeService;
 
-    public AttendancesController(IAttendanceService attendanceService)
+    public AttendancesController(IAttendanceService attendanceService, IEmployeeService employeeService)
     {
         this._attendanceService = attendanceService;
+        this._employeeService = employeeService;
     }
 
     [HttpGet]
@@ -28,14 +31,14 @@ public class AttendancesController : ControllerBase
         }
     }
 
-    [HttpPost("CheckIn")]
-    public async Task<ActionResult<AttendanceViewModel>> CheckIn([FromBody] AttendanceCreateViewModel attendanceCreateViewModel)
+    [HttpPost("check-in")]
+    public async Task<ActionResult<AttendanceViewModel>> CheckIn()
     {
         try
         {
-            var attendanceViewModel = await _attendanceService.CreateAsync(attendanceCreateViewModel);
+            var employeeId = GetEmployeeIdFromToken();
+            var attendanceViewModel = await _attendanceService.CreateAsync(employeeId);
             return Ok(attendanceViewModel);
-
         }
         catch (Exception ex)
         {
@@ -43,14 +46,14 @@ public class AttendancesController : ControllerBase
         }
     }
 
-    [HttpPut("{id}/CheckOut")]
+    [HttpPatch("check-out/{id}")]
     public async Task<ActionResult<bool>> CheckOut([FromRoute] int id)
     {
         try
         {
-            var result = await _attendanceService.UpdateAsync(id);
+            var employeeId = GetEmployeeIdFromToken();
+            var result = await _attendanceService.UpdateAsync(employeeId, id);
             return Ok(result);
-
         }
         catch (Exception ex)
         {
@@ -65,11 +68,20 @@ public class AttendancesController : ControllerBase
         {
             var result = await _attendanceService.DeleteOneAsync(id);
             return Ok(result);
-
         }
         catch (Exception ex)
         {
             return BadRequest(ex.Message);
         }
+    }
+
+
+    private int GetEmployeeIdFromToken()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim == null)
+            throw new UnauthorizedAccessException("Employee ID not found in token.");
+
+        return int.Parse(claim.Value);
     }
 }
