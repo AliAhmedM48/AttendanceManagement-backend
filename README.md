@@ -280,7 +280,7 @@ The frontend of the project is available at the following GitHub repository:
 
 ---
 
-## 🔮 Future Enhancements
+## Future Enhancements
 
 ### 1. **Integrating Automapper for Entity-to-DTO Mapping**
 
