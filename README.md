@@ -8,6 +8,8 @@
 4. [Security](#security)
 5. [Deployment](#deployment)
 6. [Test Accounts for Experimentation](#test-accounts-for-experimentation)
+7. [Frontend Repository](#frontend-repository)
+8. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -268,6 +270,55 @@ The application will seed default accounts for both Admin and Employees upon fir
 
 - **Employee Accounts**:  
   Use the credentials above to log in as employees. These accounts allow you to check attendance records and update personal information.
+
+---
+## Frontend Repository
+
+The frontend of the project is available at the following GitHub repository:
+
+[Frontend Repository - Attendance Management](https://github.com/AliAhmedM48/AttendanceManagement-frontend)
+
+---
+
+## 🔮 Future Enhancements
+
+### 1. **Integrating Automapper for Entity-to-DTO Mapping**
+
+   - **What**: Currently, data transformations (e.g., converting `Employee` and `Attendance` entities into Data Transfer Objects (DTOs)) are performed manually. **Automapper** will streamline this process by automating object-to-object mapping, reducing boilerplate code and the risk of errors.
+
+   - **How**: 
+     - Instead of writing code manually to map data from one object to another, like converting an `Employee` to `EmployeeDTO`, Automapper will handle this automatically by creating mapping profiles between entities and DTOs.
+     - For example, in the `EmployeeService`, instead of manually copying properties from the `Employee` entity to an `EmployeeDTO`, Automapper will perform this transformation with a simple method call.
+
+### 2. **Adding Structured Logging with Serilog**
+
+   - **What**: To enhance error tracking and log management, **Serilog** will be integrated for structured logging, enabling logs to be saved in a more organized format in databases, files, or external services.
+
+   - **How**:
+     - Serilog will be configured in the `Startup.cs` or `Program.cs` file to capture key data such as user logins, attendance tracking, and error handling. This will allow the team to monitor and debug the system more effectively.
+     - For example, when a user logs in, the application will log this event with the user's ID and status, which can be later queried in case of any issues.
+
+### 3. **Background Task Management with Hangfire**
+
+   - **What**: **Hangfire** will be used to manage background tasks such as sending notifications, cleaning up old data, or generating periodic reports without blocking the main request-response cycle.
+
+   - **How**:
+     - For example, instead of manually running a task to clean up old attendance records, Hangfire will automatically run this task in the background at scheduled intervals, ensuring the database is kept clean without affecting performance.
+
+### 4. **Implementing Redis Caching for Employee and Attendance Data**
+
+   - **What**: To improve data retrieval speed and reduce database load, **Redis** will be utilized as an in-memory cache for frequently accessed data such as employee and attendance records.
+
+   - **How**:
+     - For instance, when the application needs to retrieve a list of employees, it will first check the cache. If the data is not found, it will fetch the data from the database and store it in Redis for future use, reducing the need to query the database every time.
+
+### 5. **Global Exception Handling System**
+
+   - **What**: A **global exception handling system** will be introduced to handle unhandled exceptions in a centralized manner, ensuring that users receive consistent error messages without exposing sensitive internal details.
+
+   - **How**:
+     - A middleware will be implemented to catch exceptions that occur during the execution of requests. This middleware will log the exception details and return a user-friendly error message, ensuring that sensitive internal information is not exposed to end-users.
+     - For example, if an error occurs while processing a request, the middleware will log the error and return a message like "An unexpected error occurred" to the user.
 
 ---
 ### Thank You for Using Our Application! 😊
